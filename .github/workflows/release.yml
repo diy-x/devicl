@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Cross build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            exe: devicl
+            cross: false
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            exe: devicl
+            cross: true
+
+          - os: ubuntu-latest
+            target: arm-unknown-linux-musleabi
+            exe: devicl
+            cross: true
+
+          - os: ubuntu-latest
+            target: arm-unknown-linux-musleabihf
+            exe: devicl
+            cross: true
+
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-musleabihf
+            exe: devicl
+            cross: true
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exe: devicl.exe
+            cross: false
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            exe: devicl
+            cross: false
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            exe: devicl
+            cross: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Install OpenSSL (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install pkg-config libssl-dev
+
+      - name: Install OpenSSL (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install openssl@3
+
+      # Cache dependencies
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      # Native build
+      - name: Run tests
+        if: matrix.cross == false
+        run: cargo test --release --target ${{ matrix.target }} --verbose
+
+      - name: Build release
+        if: matrix.cross == false
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # Cross build
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Run tests (cross)
+        if: matrix.cross
+        run: cross test --release --target ${{ matrix.target }} --verbose
+
+      - name: Build release (cross)
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }}
+
+      # Optimize binary size with UPX
+      - name: Run UPX
+        continue-on-error: true
+        if: matrix.os == 'ubuntu-latest' && !contains(matrix.target, 'mips')
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          version: v4.2.2
+          files: target/${{ matrix.target }}/release/${{ matrix.exe }}
+          args: -q --best --lzma
+
+      # Upload artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: devicl-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/${{ matrix.exe }}
+
+      # Create release archive
+      - name: Create release archive
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release/
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            7z a ../../../devicl-${{ matrix.target }}.zip ${{ matrix.exe }}
+          else
+            tar -czf ../../../devicl-${{ matrix.target }}.tar.gz ${{ matrix.exe }}
+          fi
+
+      # Publish release
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            devicl-${{ matrix.target }}.tar.gz
+            devicl-${{ matrix.target }}.zip
+          generate_release_notes: true
+          draft: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Create checksums for all artifacts
+  checksums:
+    name: Generate checksums
+    runs-on: ubuntu-latest
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          find . -type f -name "devicl*" -exec sha256sum {} \; > ../checksums.txt
+          cat ../checksums.txt
+
+      - name: Upload checksums
+        uses: softprops/action-gh-release@v2
+        with:
+          files: checksums.txt
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,167 @@
+/* 自定义样式 */
+:root {
+    --primary-color: #4338ca;
+    --secondary-color: #06b6d4;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+}
+
+/* 状态指示器 */
+.status-enabled {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.status-disabled {
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
+/* 通知样式 */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    min-width: 300px;
+    transition: all 0.3s ease;
+}
+
+.notification.success {
+    background-color: var(--success-color);
+}
+
+.notification.error {
+    background-color: var(--danger-color);
+}
+
+.notification.warning {
+    background-color: var(--warning-color);
+}
+
+.notification.info {
+    background-color: var(--secondary-color);
+}
+
+/* 表格优化 */
+table {
+    font-size: 0.9rem;
+}
+
+table code {
+    background: var(--card-background-color);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.85rem;
+}
+
+/* 按钮组 */
+.button-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* 表单优化 */
+form {
+    margin-bottom: 2rem;
+}
+
+form small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--muted-color);
+}
+
+/* 结果区域 */
+#deleteResult {
+    margin-top: 1.5rem;
+}
+
+#deleteResult pre {
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* 导航优化 */
+nav {
+    background: var(--card-background-color);
+    border-bottom: 1px solid var(--muted-border-color);
+    margin-bottom: 2rem;
+}
+
+/* 语言选择器 */
+.language-selector {
+    margin-left: auto;
+}
+
+.language-selector select {
+    margin: 0;
+    min-width: 120px;
+    font-size: 0.9rem;
+}
+
+/* 区块分割 */
+section {
+    margin-bottom: 3rem;
+    padding: 1.5rem;
+    background: var(--card-background-color);
+    border-radius: 0.5rem;
+    border: 1px solid var(--muted-border-color);
+}
+
+section header {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--muted-border-color);
+    padding-bottom: 0.5rem;
+}
+
+section header h2 {
+    margin-bottom: 0;
+    color: var(--primary-color);
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .notification {
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+
+    table {
+        font-size: 0.8rem;
+    }
+
+    .button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* 加载动画 */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: " 🔄";
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

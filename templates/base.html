@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ messages.app_title }}{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="container-fluid">
+        <ul>
+            <li><strong>{{ messages.app_title }}</strong></li>
+        </ul>
+        <ul>
+            <li><a href="/">{{ messages.home }}</a></li>
+            <li><a href="#" onclick="showChangePasswordModal()">{{ messages.change_password }}</a></li>
+            <li><a href="#" onclick="logout()">{{ messages.logout }}</a></li>
+            <li class="language-selector">
+                <select id="languageSelect" onchange="changeLanguage(this.value)">
+                    {% for lang in supported_languages %}
+                    <option value="{{ lang.code }}" {% if lang.code == current_lang %}selected{% endif %}>
+                        {{ lang.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container">
+        <p><small>{{ messages.footer_text }}</small></p>
+    </footer>
+
+    <!-- Change Password Modal -->
+    <dialog id="changePasswordModal">
+        <article>
+            <header>
+                <h3>{{ messages.change_password }}</h3>
+                <button id="closeModal" aria-label="Close" rel="prev"></button>
+            </header>
+            <form id="changePasswordForm">
+                <div>
+                    <label for="oldPassword">{{ messages.old_password }}</label>
+                    <input type="password" id="oldPassword" name="old_password" required>
+                </div>
+                <div>
+                    <label for="newPassword">{{ messages.new_password }}</label>
+                    <input type="password" id="newPassword" name="new_password" required minlength="6">
+                </div>
+                <div>
+                    <label for="confirmPassword">{{ messages.confirm_password }}</label>
+                    <input type="password" id="confirmPassword" name="confirm_password" required minlength="6">
+                </div>
+                <div id="passwordMessage" style="display: none;"></div>
+            </form>
+            <footer>
+                <button type="button" onclick="closeChangePasswordModal()" class="secondary">{{ messages.cancel }}</button>
+                <button type="submit" form="changePasswordForm">{{ messages.save }}</button>
+            </footer>
+        </article>
+    </dialog>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/auth.js"></script>
+</body>
+</html>

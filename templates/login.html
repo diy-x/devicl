@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ messages.login_title }} - {{ messages.app_title }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .login-container {
+            max-width: 600px;
+            margin: 3rem auto;
+            padding: 2rem;
+        }
+        .login-form {
+            background: var(--card-background-color);
+            padding: 3rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--muted-border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .login-header h1 {
+            margin-bottom: 0.5rem;
+        }
+        .login-header p {
+            color: var(--muted-color);
+        }
+        .language-selector-login {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+        .language-selector-login select {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        .error-message {
+            color: var(--danger-color);
+            background: var(--danger-color-10);
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--danger-color);
+        }
+        .success-message {
+            color: var(--success-color);
+            background: var(--success-color-10);
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--success-color);
+        }
+        .default-password-info {
+            background: var(--warning-color-10);
+            border: 1px solid var(--warning-color);
+            color: var(--warning-color);
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .footer-info {
+            text-align: center;
+            margin-top: 2rem;
+            color: var(--muted-color);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Language selector -->
+    <div class="language-selector-login">
+        <select id="languageSelect" onchange="changeLanguage(this.value)">
+            {% for lang in supported_languages %}
+            <option value="{{ lang.code }}" {% if lang.code == current_lang %}selected{% endif %}>
+                {{ lang.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="login-container">
+        <div class="login-form">
+            <div class="login-header">
+                <h1>🔐 {{ messages.login_title }}</h1>
+                <p>{{ messages.login_subtitle }}</p>
+            </div>
+
+            <!-- Security notice -->
+            <div class="default-password-info" style="display: none;">
+                <strong>{{ messages.security_notice }}:</strong><br>
+                {{ messages.change_default_password }}
+            </div>
+
+            <!-- Error/Success messages -->
+            <div id="message" style="display: none;"></div>
+
+            <form id="loginForm">
+                <div>
+                    <label for="password">{{ messages.admin_password }}</label>
+                    <input type="password" id="password" name="password" required
+                           placeholder="{{ messages.enter_password }}" autofocus>
+                </div>
+
+                <button type="submit" id="loginButton">
+                    {{ messages.login_button }}
+                </button>
+            </form>
+
+            <div class="footer-info">
+                {{ messages.login_footer_text }}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Language switching
+        function changeLanguage(language) {
+            const url = new URL(window.location);
+            url.searchParams.set('lang', language);
+            window.location.href = url.toString();
+        }
+
+        // Login form handling
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const password = document.getElementById('password').value;
+            const loginButton = document.getElementById('loginButton');
+            const messageDiv = document.getElementById('message');
+
+            // Show loading state
+            loginButton.disabled = true;
+            loginButton.textContent = '{{ messages.loading }}...';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password: password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    messageDiv.className = 'success-message';
+                    messageDiv.textContent = '{{ messages.login_success }}';
+                    messageDiv.style.display = 'block';
+
+                    // Redirect to main page after a short delay
+                    setTimeout(() => {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirect = urlParams.get('redirect') || '/';
+                        window.location.href = redirect;
+                    }, 1000);
+                } else {
+                    messageDiv.className = 'error-message';
+                    messageDiv.textContent = '{{ messages.login_error }}';
+                    messageDiv.style.display = 'block';
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                }
+            } catch (error) {
+                messageDiv.className = 'error-message';
+                messageDiv.textContent = '{{ messages.request_failed }}: ' + error.message;
+                messageDiv.style.display = 'block';
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = '{{ messages.login_button }}';
+            }
+        });
+
+        // Focus on password field when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('password').focus();
+        });
+
+        // Clear message when user starts typing
+        document.getElementById('password').addEventListener('input', function() {
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

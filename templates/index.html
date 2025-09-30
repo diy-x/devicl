@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ messages.app_title }}</h1>
+
+<!-- 目录管理 -->
+<section>
+    <header>
+        <h2>{{ messages.directory_management }}</h2>
+    </header>
+
+    <form id="addDirectoryForm">
+        <div class="grid">
+            <div>
+                <label for="path">{{ messages.directory_path }} *</label>
+                <input type="text" id="path" name="path" required placeholder="/path/to/directory">
+            </div>
+            <div>
+                <label for="description">{{ messages.directory_description }} ({{ messages.optional }})</label>
+                <input type="text" id="description" name="description" placeholder="{{ messages.description }}">
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <button type="submit">{{ messages.add_directory }}</button>
+            </div>
+        </div>
+    </form>
+
+    <div id="directoriesTable">
+        <table>
+            <thead>
+                <tr>
+                    <th>{{ messages.path }}</th>
+                    <th>{{ messages.description }}</th>
+                    <th>{{ messages.status }}</th>
+                    <th>{{ messages.created_at }}</th>
+                    <th>{{ messages.operations }}</th>
+                </tr>
+            </thead>
+            <tbody id="directoriesTableBody">
+                {% for directory in directories %}
+                <tr>
+                    <td><code>{{ directory.path }}</code></td>
+                    <td>{{ directory.description | default(value="") }}</td>
+                    <td>
+                        {% if directory.enabled %}
+                            <span class="status-enabled">✅ {{ messages.enabled }}</span>
+                        {% else %}
+                            <span class="status-disabled">❌ {{ messages.disabled }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ directory.created_at | date(format="%Y-%m-%d %H:%M") }}</td>
+                    <td>
+                        <button onclick="deleteDirectory('{{ directory.id }}')" class="secondary outline">{{ messages.delete }}</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- 文件删除操作 -->
+<section>
+    <header>
+        <h2>{{ messages.file_operations }}</h2>
+    </header>
+
+    <form id="deleteFilesForm">
+        <div class="grid">
+            <div>
+                <label for="directorySelect">{{ messages.select_directory }} *</label>
+                <select id="directorySelect" name="directory_id" required>
+                    <option value="">{{ messages.select_directory }}</option>
+                    {% for directory in directories %}
+                    <option value="{{ directory.id }}">{{ directory.path }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="taskType">{{ messages.delete_type }} *</label>
+                <select id="taskType" name="task_type" required>
+                    <option value="delete_older">{{ messages.delete_older }}</option>
+                    <option value="delete_newer">{{ messages.delete_newer }}</option>
+                    <option value="delete_between">{{ messages.delete_between }}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div>
+                <label for="daysOld">{{ messages.days_old }} ({{ messages.optional }})</label>
+                <input type="number" id="daysOld" name="days_old" min="0" placeholder="7">
+                <small>{{ messages.days_old_hint }}</small>
+            </div>
+            <div>
+                <label for="dateFrom">{{ messages.start_date }} ({{ messages.optional }})</label>
+                <input type="datetime-local" id="dateFrom" name="date_from">
+            </div>
+            <div>
+                <label for="dateTo">{{ messages.end_date }} ({{ messages.optional }})</label>
+                <input type="datetime-local" id="dateTo" name="date_to">
+            </div>
+        </div>
+
+        <div class="grid">
+            <div>
+                <label for="filePattern">{{ messages.file_pattern }} ({{ messages.optional }})</label>
+                <input type="text" id="filePattern" name="file_pattern" placeholder=".log, .tmp, backup">
+                <small>{{ messages.file_pattern_hint }}</small>
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                    <button type="button" onclick="deleteFiles(true)" class="secondary">🔍 {{ messages.preview_delete }}</button>
+                    <button type="button" onclick="deleteFiles(false)" class="contrast">⚠️ {{ messages.execute_delete }}</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; padding: 1rem; background: var(--code-background-color); border-radius: 0.5rem; border-left: 4px solid var(--primary);">
+            <h4 style="margin-top: 0;">💡 {{ messages.operation_tips }}</h4>
+            <ul style="margin-bottom: 0; font-size: 0.9rem;">
+                <li>{{ messages.tip_preview_first }}</li>
+                <li>{{ messages.tip_backup_important }}</li>
+                <li>{{ messages.tip_test_small_first }}</li>
+            </ul>
+        </div>
+    </form>
+
+    <div id="deleteResult" style="display: none;">
+        <article>
+            <header>
+                <h3>{{ messages.delete_result }}</h3>
+            </header>
+            <pre id="deleteResultContent" style="background: var(--card-background-color); padding: 1rem; border-radius: 0.5rem;"></pre>
+        </article>
+    </div>
+</section>
+
+<!-- 定时任务管理 -->
+<section>
+    <header>
+        <h2>{{ messages.scheduled_tasks }}</h2>
+    </header>
+
+    <form id="createTaskForm">
+        <div class="grid">
+            <div>
+                <label for="taskDirectorySelect">{{ messages.select_directory }} *</label>
+                <select id="taskDirectorySelect" name="directory_id" required>
+                    <option value="">{{ messages.select_directory }}</option>
+                    {% for directory in directories %}
+                    <option value="{{ directory.id }}">{{ directory.path }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="taskName">{{ messages.task_name }} *</label>
+                <input type="text" id="taskName" name="name" required placeholder="{{ messages.task_name }}">
+            </div>
+        </div>
+
+        <div class="grid">
+            <div>
+                <label for="cronExpression">{{ messages.cron_expression }} *</label>
+                <input type="text" id="cronExpression" name="cron_expression" required placeholder="0 0 * * *">
+                <small>{{ messages.cron_hint }}</small>
+            </div>
+            <div>
+                <label for="taskTaskType">{{ messages.delete_type }} *</label>
+                <select id="taskTaskType" name="task_type" required>
+                    <option value="delete_older">{{ messages.delete_older }}</option>
+                    <option value="delete_newer">{{ messages.delete_newer }}</option>
+                    <option value="delete_between">{{ messages.delete_between }}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div>
+                <label for="taskDaysOld">{{ messages.days_old }}</label>
+                <input type="number" id="taskDaysOld" name="task_days_old" min="1" value="7" placeholder="7">
+            </div>
+            <div>
+                <label for="taskFilePattern">{{ messages.file_pattern }} ({{ messages.optional }})</label>
+                <input type="text" id="taskFilePattern" name="task_file_pattern" placeholder=".log">
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <button type="submit" class="contrast">✅ {{ messages.create_task }}</button>
+            </div>
+        </div>
+    </form>
+
+    <div id="tasksTable">
+        <table>
+            <thead>
+                <tr>
+                    <th>{{ messages.task_name }}</th>
+                    <th>{{ messages.path }}</th>
+                    <th>{{ messages.cron_expression }}</th>
+                    <th>{{ messages.task_type }}</th>
+                    <th>{{ messages.status }}</th>
+                    <th>{{ messages.last_run }}</th>
+                    <th>{{ messages.operations }}</th>
+                </tr>
+            </thead>
+            <tbody id="tasksTableBody">
+                {% for task in tasks %}
+                <tr>
+                    <td><strong>{{ task.name }}</strong></td>
+                    <td><code>{{ task.directory_id }}</code></td>
+                    <td><code>{{ task.cron_expression }}</code></td>
+                    <td>{{ task.task_type }}</td>
+                    <td>
+                        {% if task.enabled %}
+                            <span class="status-enabled">✅ {{ messages.enabled }}</span>
+                        {% else %}
+                            <span class="status-disabled">❌ {{ messages.disabled }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.last_run %}
+                            {{ task.last_run | date(format="%Y-%m-%d %H:%M") }}
+                        {% else %}
+                            <em>{{ messages.never_run }}</em>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button onclick="deleteTask('{{ task.id }}')" class="secondary outline">{{ messages.delete }}</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- 状态提示 -->
+<div id="notification" class="notification" style="display: none;"></div>
+{% endblock %}

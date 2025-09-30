@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Rust build artifacts
+target/
+Cargo.lock
+
+# Database files
+*.db
+*.db-*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+
+# GitHub Actions
+.github/
+
+# Temporary files
+cookies.txt
+.env
+.env.*
+
+# Log files
+*.log
