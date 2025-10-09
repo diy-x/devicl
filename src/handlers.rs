@@ -4,11 +4,11 @@ use axum::{
     response::{Html, IntoResponse},
     Json,
 };
-use std::error::Error;
 use tera::{Tera, Context};
 use sqlx::SqlitePool;
 use std::sync::OnceLock;
 use serde::Deserialize;
+use rust_embed::RustEmbed;
 
 use crate::models::*;
 use crate::database::*;
@@ -25,18 +25,28 @@ pub struct LanguageQuery {
     lang: Option<String>,
 }
 
+#[derive(RustEmbed)]
+#[folder = "templates/"]
+struct Templates;
+
 static TERA: OnceLock<Tera> = OnceLock::new();
 
 fn get_tera() -> &'static Tera {
     TERA.get_or_init(|| {
-        match Tera::new("templates/**/*") {
-            Ok(tera) => tera,
-            Err(e) => {
-                eprintln!("Failed to load templates from 'templates/**/*': {}", e);
-                eprintln!("Current directory: {:?}", std::env::current_dir());
-                panic!("Template loading failed");
+        let mut tera = Tera::default();
+
+        // Load all embedded template files
+        for file_path in Templates::iter() {
+            if let Some(content) = Templates::get(&file_path) {
+                if let Ok(template_str) = std::str::from_utf8(content.data.as_ref()) {
+                    if let Err(e) = tera.add_raw_template(&file_path, template_str) {
+                        eprintln!("Failed to add template '{}': {}", file_path, e);
+                    }
+                }
             }
         }
+
+        tera
     })
 }
 

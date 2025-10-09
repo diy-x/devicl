@@ -301,6 +301,7 @@ pub fn reload_translations() {
 }
 
 // Get available language codes
+#[allow(dead_code)]
 pub fn get_available_languages() -> Vec<String> {
     let translations = get_translations();
     translations.keys().cloned().collect()

@@ -11,8 +11,10 @@ use axum::{
     routing::{get, post, delete},
     Router,
     middleware::from_fn_with_state,
+    http::{StatusCode, header, Uri},
+    response::Response,
 };
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::cors::CorsLayer;
 use tower_sessions::{SessionManagerLayer, Expiry};
 use time::Duration;
 use tower_sessions_sqlx_store::SqliteStore;
@@ -20,12 +22,37 @@ use std::sync::Arc;
 use tokio::spawn;
 use tracing::info;
 use tracing_subscriber;
+use rust_embed::RustEmbed;
 
 use database::create_pool;
 use handlers::*;
 use scheduler::TaskScheduler;
 use auth::initialize_auth_table;
 use middleware::{auth_middleware, page_auth_middleware};
+
+#[derive(RustEmbed)]
+#[folder = "static/"]
+struct StaticAssets;
+
+// Handler for embedded static assets
+async fn static_handler(uri: Uri) -> Response<axum::body::Body> {
+    let path = uri.path().trim_start_matches("/static/");
+
+    match StaticAssets::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, mime.as_ref())
+                .body(axum::body::Body::from(content.data.to_vec()))
+                .unwrap()
+        }
+        None => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(axum::body::Body::from("404 Not Found"))
+            .unwrap(),
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -78,8 +105,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/auth/change-password", post(api_change_password))
         .layer(from_fn_with_state(pool.clone(), auth_middleware))
 
-        // Static files
-        .nest_service("/static", ServeDir::new("static"))
+        // Static files (embedded)
+        .route("/static/*path", get(static_handler))
 
         // Add middleware layers (order matters: inner layers run first)
         .layer(CorsLayer::permissive())
