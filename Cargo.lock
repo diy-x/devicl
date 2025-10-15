@@ -546,6 +546,7 @@ dependencies = [
  "chrono",
  "clap",
  "cron",
+ "libsqlite3-sys",
  "mime_guess",
  "rust-embed",
  "serde",

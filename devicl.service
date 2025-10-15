@@ -1,0 +1,24 @@
+[Unit]
+Description=Devicl File Cleanup Manager
+Documentation=https://github.com/diy-x/devicl
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/devicl
+Environment="RUST_LOG=info"
+ExecStart=/opt/devicl/devicl
+Restart=on-failure
+RestartSec=5s
+
+# Security settings
+PrivateTmp=true
+
+# Resource limits
+LimitNOFILE=65536
+TasksMax=4096
+
+[Install]
+WantedBy=multi-user.target
