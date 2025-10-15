@@ -29,6 +29,7 @@ use handlers::*;
 use scheduler::TaskScheduler;
 use auth::initialize_auth_table;
 use middleware::{auth_middleware, page_auth_middleware};
+use database::initialize_default_directories;
 
 #[derive(RustEmbed)]
 #[folder = "static/"]
@@ -68,6 +69,10 @@ async fn main() -> anyhow::Result<()> {
     // Initialize authentication
     initialize_auth_table(&pool).await?;
     info!("Authentication initialized");
+
+    // Initialize default directories
+    initialize_default_directories(&pool).await?;
+    info!("Default directories initialized");
 
     // Start scheduler in background
     let scheduler_pool = Arc::new(pool.clone());

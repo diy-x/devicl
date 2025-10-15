@@ -26,6 +26,7 @@ pub struct ScheduledTask {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum TaskType {
     DeleteOlder,
     DeleteNewer,

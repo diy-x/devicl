@@ -239,3 +239,47 @@ pub async fn update_task_run_time(pool: &SqlitePool, id: &str, last_run: chrono:
         .await?;
     Ok(())
 }
+
+pub async fn initialize_default_directories(pool: &SqlitePool) -> Result<()> {
+    let default_dirs = vec![
+        (
+            "/home/holomotion/.config/NTSports/HoloMotion/mp4s",
+            Some("MP4 video files directory".to_string()),
+        ),
+        (
+            "/home/holomotion/.config/NTSports/HoloMotion/results",
+            Some("Results directory".to_string()),
+        ),
+    ];
+
+    for (path, description) in default_dirs {
+        // Check if directory already exists
+        let existing = sqlx::query("SELECT id FROM directories WHERE path = ?")
+            .bind(path)
+            .fetch_optional(pool)
+            .await?;
+
+        if existing.is_none() {
+            // Create directory if path exists
+            if std::path::Path::new(path).exists() {
+                let req = AddDirectoryRequest {
+                    path: path.to_string(),
+                    description,
+                };
+
+                match add_directory(pool, &req).await {
+                    Ok(_) => {
+                        tracing::info!("Initialized default directory: {}", path);
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to initialize default directory {}: {}", path, e);
+                    }
+                }
+            } else {
+                tracing::info!("Skipping default directory {} (path does not exist)", path);
+            }
+        }
+    }
+
+    Ok(())
+}
