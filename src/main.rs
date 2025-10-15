@@ -15,7 +15,7 @@ use axum::{
     response::Response,
 };
 use tower_http::cors::CorsLayer;
-use tower_sessions::{SessionManagerLayer, Expiry};
+use tower_sessions::{SessionManagerLayer, Expiry, cookie::SameSite};
 use time::Duration;
 use tower_sessions_sqlx_store::SqliteStore;
 use std::sync::Arc;
@@ -81,18 +81,12 @@ async fn main() -> anyhow::Result<()> {
     session_store.migrate().await?;
 
     let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false) // Disable Secure flag for development
+        .with_same_site(SameSite::Lax)
         .with_expiry(Expiry::OnInactivity(Duration::hours(24))); // 24 hours
 
-    // Create router
-    let app = Router::new()
-        // Public routes (no authentication required)
-        .route("/login", get(login_page))
-        .route("/api/auth/login", post(api_login))
-        .route("/api/auth/status", get(api_auth_status))
-        .route("/api/messages", get(api_get_messages))
-        .route("/api/languages", get(api_get_languages))
-
-        // Protected routes (require authentication)
+    // Create router with protected routes
+    let protected_routes = Router::new()
         .route("/", get(index))
         .route("/api/directories", get(api_get_directories))
         .route("/api/directories", post(api_add_directory))
@@ -103,12 +97,21 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/tasks/:id", delete(api_delete_task))
         .route("/api/auth/logout", post(api_logout))
         .route("/api/auth/change-password", post(api_change_password))
-        .layer(from_fn_with_state(pool.clone(), auth_middleware))
+        .route_layer(from_fn_with_state(pool.clone(), auth_middleware));
 
-        // Static files (embedded)
-        .route("/static/*path", get(static_handler))
+    // Create router with public routes
+    let public_routes = Router::new()
+        .route("/login", get(login_page))
+        .route("/api/auth/login", post(api_login))
+        .route("/api/auth/status", get(api_auth_status))
+        .route("/api/messages", get(api_get_messages))
+        .route("/api/languages", get(api_get_languages))
+        .route("/static/*path", get(static_handler));
 
-        // Add middleware layers (order matters: inner layers run first)
+    // Combine all routes
+    let app = Router::new()
+        .merge(protected_routes)
+        .merge(public_routes)
         .layer(CorsLayer::permissive())
         .layer(from_fn_with_state(pool.clone(), page_auth_middleware))
         .layer(session_layer)
