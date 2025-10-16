@@ -201,6 +201,50 @@ function updateDirectorySelects(directories) {
     });
 }
 
+// 标签页切换
+function switchTimeTab(tab) {
+    // 切换标签按钮状态
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.color = 'var(--muted-color)';
+    });
+
+    const activeTab = document.getElementById(`tab${tab === 'byDays' ? 'ByDays' : 'ByDate'}`);
+    activeTab.classList.add('active');
+    activeTab.style.borderBottomColor = 'var(--primary)';
+    activeTab.style.color = 'var(--primary)';
+
+    // 切换内容区域
+    document.getElementById('timeTabByDays').style.display = tab === 'byDays' ? 'block' : 'none';
+    document.getElementById('timeTabByDate').style.display = tab === 'byDate' ? 'block' : 'none';
+}
+
+// 更新日期字段显示
+function updateDateFields() {
+    const taskType = document.getElementById('taskTypeByDate').value;
+    const singleDateField = document.getElementById('singleDateField');
+    const rangeDateFields = document.getElementById('rangeDateFields');
+    const singleDateLabel = document.getElementById('singleDateLabel');
+
+    if (taskType === 'delete_between') {
+        // 显示区间选择
+        singleDateField.style.display = 'none';
+        rangeDateFields.style.display = 'grid';
+    } else {
+        // 显示单个日期选择
+        singleDateField.style.display = 'grid';
+        rangeDateFields.style.display = 'none';
+
+        // 更新标签文本
+        if (taskType === 'delete_older') {
+            singleDateLabel.textContent = getMessage('before_date') || '早于此时间';
+        } else if (taskType === 'delete_newer') {
+            singleDateLabel.textContent = getMessage('after_date') || '晚于此时间';
+        }
+    }
+}
+
 // 文件删除操作
 async function deleteFiles(dryRun) {
     const form = document.getElementById('deleteFilesForm');
@@ -211,16 +255,67 @@ async function deleteFiles(dryRun) {
         return;
     }
 
-    const filterConfig = {
-        days_old: formData.get('days_old') ? parseInt(formData.get('days_old')) : null,
-        date_from: formData.get('date_from') ? new Date(formData.get('date_from')).toISOString() : null,
-        date_to: formData.get('date_to') ? new Date(formData.get('date_to')).toISOString() : null,
-        file_pattern: formData.get('file_pattern') || null
-    };
+    // 检查当前激活的标签页
+    const byDaysTab = document.getElementById('timeTabByDays');
+    const isByDaysMode = byDaysTab.style.display !== 'none';
+
+    let taskType;
+    let filterConfig;
+
+    if (isByDaysMode) {
+        // 按天数模式 - 固定为删除早于N天的文件
+        const daysOld = document.getElementById('daysOld').value;
+        if (!daysOld || parseInt(daysOld) < 1) {
+            showNotification('请输入有效的天数（至少为1天）', 'warning');
+            return;
+        }
+
+        taskType = 'delete_older';  // 固定为删除早于
+        filterConfig = {
+            days_old: parseInt(daysOld),
+            date_from: null,
+            date_to: null,
+            file_pattern: formData.get('file_pattern') || null
+        };
+    } else {
+        // 按时间模式
+        taskType = document.getElementById('taskTypeByDate').value;
+
+        if (taskType === 'delete_between') {
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            if (!dateFrom || !dateTo) {
+                showNotification('请选择开始和结束时间', 'warning');
+                return;
+            }
+
+            filterConfig = {
+                days_old: null,
+                date_from: new Date(dateFrom).toISOString(),
+                date_to: new Date(dateTo).toISOString(),
+                file_pattern: formData.get('file_pattern') || null
+            };
+        } else {
+            const singleDate = document.getElementById('singleDate').value;
+
+            if (!singleDate) {
+                showNotification('请选择时间', 'warning');
+                return;
+            }
+
+            filterConfig = {
+                days_old: null,
+                date_from: taskType === 'delete_older' ? new Date(singleDate).toISOString() : null,
+                date_to: taskType === 'delete_newer' ? new Date(singleDate).toISOString() : null,
+                file_pattern: formData.get('file_pattern') || null
+            };
+        }
+    }
 
     const data = {
         directory_id: formData.get('directory_id'),
-        task_type: formData.get('task_type'),
+        task_type: taskType,
         dry_run: dryRun,
         filter_config: filterConfig
     };
@@ -247,6 +342,51 @@ async function deleteFiles(dryRun) {
     }
 }
 
+// 定时任务标签页切换
+function switchTaskTimeTab(tab) {
+    // 切换标签按钮状态
+    const tabButtons = document.querySelectorAll('#taskTabByDays, #taskTabByDate');
+    tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.color = 'var(--muted-color)';
+    });
+
+    const activeTab = document.getElementById(`task${tab === 'byDays' ? 'TabByDays' : 'TabByDate'}`);
+    activeTab.classList.add('active');
+    activeTab.style.borderBottomColor = 'var(--primary)';
+    activeTab.style.color = 'var(--primary)';
+
+    // 切换内容区域
+    document.getElementById('taskTimeTabByDays').style.display = tab === 'byDays' ? 'block' : 'none';
+    document.getElementById('taskTimeTabByDate').style.display = tab === 'byDate' ? 'block' : 'none';
+}
+
+// 更新任务日期字段显示
+function updateTaskDateFields() {
+    const taskType = document.getElementById('taskTypeByDate').value;
+    const singleDateField = document.getElementById('taskSingleDateField');
+    const rangeDateFields = document.getElementById('taskRangeDateFields');
+    const singleDateLabel = document.getElementById('taskSingleDateLabel');
+
+    if (taskType === 'delete_between') {
+        // 显示区间选择
+        singleDateField.style.display = 'none';
+        rangeDateFields.style.display = 'grid';
+    } else {
+        // 显示单个日期选择
+        singleDateField.style.display = 'grid';
+        rangeDateFields.style.display = 'none';
+
+        // 更新标签文本
+        if (taskType === 'delete_older') {
+            singleDateLabel.textContent = getMessage('before_date') || '早于此时间';
+        } else if (taskType === 'delete_newer') {
+            singleDateLabel.textContent = getMessage('after_date') || '晚于此时间';
+        }
+    }
+}
+
 // 定时任务管理
 async function createTask() {
     const form = document.getElementById('createTaskForm');
@@ -257,18 +397,69 @@ async function createTask() {
         return;
     }
 
-    const filterConfig = {
-        days_old: parseInt(formData.get('task_days_old')) || 7,
-        date_from: null,
-        date_to: null,
-        file_pattern: formData.get('task_file_pattern') || null
-    };
+    // 检查当前激活的标签页
+    const byDaysTab = document.getElementById('taskTimeTabByDays');
+    const isByDaysMode = byDaysTab.style.display !== 'none';
+
+    let taskType;
+    let filterConfig;
+
+    if (isByDaysMode) {
+        // 按天数模式 - 固定为删除早于N天的文件
+        const daysOld = document.getElementById('taskDaysOld').value;
+        if (!daysOld || parseInt(daysOld) < 1) {
+            showNotification('请输入有效的天数（至少为1天）', 'warning');
+            return;
+        }
+
+        taskType = 'delete_older';  // 固定为删除早于
+        filterConfig = {
+            days_old: parseInt(daysOld),
+            date_from: null,
+            date_to: null,
+            file_pattern: formData.get('task_file_pattern') || null
+        };
+    } else {
+        // 按时间模式
+        taskType = document.getElementById('taskTypeByDate').value;
+
+        if (taskType === 'delete_between') {
+            const dateFrom = document.getElementById('taskDateFrom').value;
+            const dateTo = document.getElementById('taskDateTo').value;
+
+            if (!dateFrom || !dateTo) {
+                showNotification('请选择开始和结束时间', 'warning');
+                return;
+            }
+
+            filterConfig = {
+                days_old: null,
+                date_from: new Date(dateFrom).toISOString(),
+                date_to: new Date(dateTo).toISOString(),
+                file_pattern: formData.get('task_file_pattern') || null
+            };
+        } else {
+            const singleDate = document.getElementById('taskSingleDate').value;
+
+            if (!singleDate) {
+                showNotification('请选择时间', 'warning');
+                return;
+            }
+
+            filterConfig = {
+                days_old: null,
+                date_from: taskType === 'delete_older' ? new Date(singleDate).toISOString() : null,
+                date_to: taskType === 'delete_newer' ? new Date(singleDate).toISOString() : null,
+                file_pattern: formData.get('task_file_pattern') || null
+            };
+        }
+    }
 
     const data = {
         directory_id: formData.get('directory_id'),
         name: formData.get('name'),
         cron_expression: formData.get('cron_expression'),
-        task_type: formData.get('task_type'),
+        task_type: taskType,
         filter_config: filterConfig
     };
 
@@ -276,6 +467,8 @@ async function createTask() {
         await ApiClient.post('/api/tasks', data);
         showNotification('定时任务创建成功！', 'success');
         form.reset();
+        // 重置标签页到默认状态
+        switchTaskTimeTab('byDays');
         await loadTasks();
     } catch (error) {
         // Error already handled in ApiClient

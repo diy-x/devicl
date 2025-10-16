@@ -77,45 +77,83 @@
                     {% endfor %}
                 </select>
             </div>
-            <div>
-                <label for="taskType">{{ messages.delete_type }} *</label>
-                <select id="taskType" name="task_type" required>
-                    <option value="delete_older">{{ messages.delete_older }}</option>
-                    <option value="delete_newer">{{ messages.delete_newer }}</option>
-                    <option value="delete_between">{{ messages.delete_between }}</option>
-                </select>
+        </div>
+
+        <!-- 时间选择标签页 -->
+        <div class="time-selection-tabs" style="margin-top: 1.5rem;">
+            <div class="tabs-header" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 2px solid var(--muted-border-color);">
+                <button type="button" class="tab-button active" onclick="switchTimeTab('byDays')" id="tabByDays" style="padding: 0.5rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 500;">
+                    📅 {{ messages.by_days | default(value="按天数") }}
+                </button>
+                <button type="button" class="tab-button" onclick="switchTimeTab('byDate')" id="tabByDate" style="padding: 0.5rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 500;">
+                    📆 {{ messages.by_date | default(value="按时间") }}
+                </button>
+            </div>
+
+            <!-- 按天数标签页内容 -->
+            <div id="timeTabByDays" class="tab-content">
+                <div class="grid">
+                    <div>
+                        <label for="daysOld">{{ messages.days_old }} *</label>
+                        <input type="number" id="daysOld" name="days_old" min="1" placeholder="7" value="7">
+                        <small>{{ messages.days_old_hint }}</small>
+                    </div>
+                </div>
+                <p style="color: var(--muted-color); margin-top: 0.5rem; font-size: 0.9rem;">
+                    💡 {{ messages.delete_days_hint | default(value="将删除修改时间早于指定天数的文件") }}
+                </p>
+            </div>
+
+            <!-- 按时间标签页内容 -->
+            <div id="timeTabByDate" class="tab-content" style="display: none;">
+                <div class="grid">
+                    <div>
+                        <label for="taskTypeByDate">{{ messages.delete_type }} *</label>
+                        <select id="taskTypeByDate" name="task_type_by_date" onchange="updateDateFields()">
+                            <option value="delete_older">{{ messages.delete_older }}</option>
+                            <option value="delete_newer">{{ messages.delete_newer }}</option>
+                            <option value="delete_between">{{ messages.delete_between }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="dateFieldsContainer">
+                    <!-- 早于/晚于：只显示一个时间选择 -->
+                    <div id="singleDateField" class="grid">
+                        <div>
+                            <label for="singleDate" id="singleDateLabel">{{ messages.before_date | default(value="早于此时间") }}</label>
+                            <input type="datetime-local" id="singleDate" name="single_date">
+                        </div>
+                    </div>
+
+                    <!-- 区间：显示两个时间选择 -->
+                    <div id="rangeDateFields" class="grid" style="display: none;">
+                        <div>
+                            <label for="dateFrom">{{ messages.start_date }}</label>
+                            <input type="datetime-local" id="dateFrom" name="date_from">
+                        </div>
+                        <div>
+                            <label for="dateTo">{{ messages.end_date }}</label>
+                            <input type="datetime-local" id="dateTo" name="date_to">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="grid">
-            <div>
-                <label for="daysOld">{{ messages.days_old }} ({{ messages.optional }})</label>
-                <input type="number" id="daysOld" name="days_old" min="0" placeholder="7">
-                <small>{{ messages.days_old_hint }}</small>
-            </div>
-            <div>
-                <label for="dateFrom">{{ messages.start_date }} ({{ messages.optional }})</label>
-                <input type="datetime-local" id="dateFrom" name="date_from">
-            </div>
-            <div>
-                <label for="dateTo">{{ messages.end_date }} ({{ messages.optional }})</label>
-                <input type="datetime-local" id="dateTo" name="date_to">
-            </div>
-        </div>
-
-        <div class="grid">
+        <!-- 文件模式选择 -->
+        <div class="grid" style="margin-top: 1.5rem;">
             <div>
                 <label for="filePattern">{{ messages.file_pattern }} ({{ messages.optional }})</label>
                 <input type="text" id="filePattern" name="file_pattern" placeholder=".log, .tmp, backup">
                 <small>{{ messages.file_pattern_hint }}</small>
             </div>
-            <div>
-                <label>&nbsp;</label>
-                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="deleteFiles(true)" class="secondary">🔍 {{ messages.preview_delete }}</button>
-                    <button type="button" onclick="deleteFiles(false)" class="contrast">⚠️ {{ messages.execute_delete }}</button>
-                </div>
-            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" onclick="deleteFiles(true)" class="secondary">🔍 {{ messages.preview_delete }}</button>
+            <button type="button" onclick="deleteFiles(false)" class="contrast">⚠️ {{ messages.execute_delete }}</button>
         </div>
 
         <div style="margin-top: 1.5rem; padding: 1rem; background: var(--code-background-color); border-radius: 0.5rem; border-left: 4px solid var(--primary);">
@@ -167,21 +205,71 @@
                 <input type="text" id="cronExpression" name="cron_expression" required placeholder="0 0 * * *">
                 <small>{{ messages.cron_hint }}</small>
             </div>
-            <div>
-                <label for="taskTaskType">{{ messages.delete_type }} *</label>
-                <select id="taskTaskType" name="task_type" required>
-                    <option value="delete_older">{{ messages.delete_older }}</option>
-                    <option value="delete_newer">{{ messages.delete_newer }}</option>
-                    <option value="delete_between">{{ messages.delete_between }}</option>
-                </select>
+        </div>
+
+        <!-- 时间选择标签页 -->
+        <div class="time-selection-tabs" style="margin-top: 1.5rem;">
+            <div class="tabs-header" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 2px solid var(--muted-border-color);">
+                <button type="button" class="tab-button active" onclick="switchTaskTimeTab('byDays')" id="taskTabByDays" style="padding: 0.5rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 500;">
+                    📅 {{ messages.by_days | default(value="按天数") }}
+                </button>
+                <button type="button" class="tab-button" onclick="switchTaskTimeTab('byDate')" id="taskTabByDate" style="padding: 0.5rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 500;">
+                    📆 {{ messages.by_date | default(value="按时间") }}
+                </button>
+            </div>
+
+            <!-- 按天数标签页内容 -->
+            <div id="taskTimeTabByDays" class="tab-content">
+                <div class="grid">
+                    <div>
+                        <label for="taskDaysOld">{{ messages.days_old }} *</label>
+                        <input type="number" id="taskDaysOld" name="task_days_old" min="1" value="7" placeholder="7">
+                    </div>
+                </div>
+                <p style="color: var(--muted-color); margin-top: 0.5rem; font-size: 0.9rem;">
+                    💡 {{ messages.delete_days_hint | default(value="将删除修改时间早于指定天数的文件") }}
+                </p>
+            </div>
+
+            <!-- 按时间标签页内容 -->
+            <div id="taskTimeTabByDate" class="tab-content" style="display: none;">
+                <div class="grid">
+                    <div>
+                        <label for="taskTypeByDate">{{ messages.delete_type }} *</label>
+                        <select id="taskTypeByDate" name="task_type_by_date" onchange="updateTaskDateFields()">
+                            <option value="delete_older">{{ messages.delete_older }}</option>
+                            <option value="delete_newer">{{ messages.delete_newer }}</option>
+                            <option value="delete_between">{{ messages.delete_between }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="taskDateFieldsContainer">
+                    <!-- 早于/晚于：只显示一个时间选择 -->
+                    <div id="taskSingleDateField" class="grid">
+                        <div>
+                            <label for="taskSingleDate" id="taskSingleDateLabel">{{ messages.before_date | default(value="早于此时间") }}</label>
+                            <input type="datetime-local" id="taskSingleDate" name="task_single_date">
+                        </div>
+                    </div>
+
+                    <!-- 区间：显示两个时间选择 -->
+                    <div id="taskRangeDateFields" class="grid" style="display: none;">
+                        <div>
+                            <label for="taskDateFrom">{{ messages.start_date }}</label>
+                            <input type="datetime-local" id="taskDateFrom" name="task_date_from">
+                        </div>
+                        <div>
+                            <label for="taskDateTo">{{ messages.end_date }}</label>
+                            <input type="datetime-local" id="taskDateTo" name="task_date_to">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="grid">
-            <div>
-                <label for="taskDaysOld">{{ messages.days_old }}</label>
-                <input type="number" id="taskDaysOld" name="task_days_old" min="1" value="7" placeholder="7">
-            </div>
+        <!-- 文件模式选择 -->
+        <div class="grid" style="margin-top: 1.5rem;">
             <div>
                 <label for="taskFilePattern">{{ messages.file_pattern }} ({{ messages.optional }})</label>
                 <input type="text" id="taskFilePattern" name="task_file_pattern" placeholder=".log">

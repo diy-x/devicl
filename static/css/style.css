@@ -165,3 +165,54 @@ section header h2 {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+/* 标签页样式 */
+.time-selection-tabs {
+    background: var(--card-background-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid var(--muted-border-color);
+}
+
+.tabs-header {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--muted-border-color);
+}
+
+.tab-button {
+    padding: 0.5rem 1rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--muted-color);
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    color: var(--primary);
+    background: var(--code-background-color);
+}
+
+.tab-button.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

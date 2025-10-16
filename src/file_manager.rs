@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 use chrono::{DateTime, Utc};
 use anyhow::Result;
+use walkdir::WalkDir;
 use crate::models::*;
 
 pub async fn delete_files_by_filter(
@@ -29,101 +30,90 @@ pub async fn delete_files_by_filter(
         return Ok(response);
     }
 
-    let entries = match fs::read_dir(dir_path) {
-        Ok(entries) => entries,
-        Err(e) => {
-            response.errors.push(format!("Failed to read directory: {}", e));
-            return Ok(response);
-        }
-    };
+    // 使用 WalkDir 递归遍历所有子目录
+    for entry in WalkDir::new(dir_path).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
 
-    for entry in entries {
-        let entry = match entry {
-            Ok(entry) => entry,
+        // 只处理文件，跳过目录
+        if !path.is_file() {
+            continue;
+        }
+
+        let file_path_str = path.to_string_lossy().to_string();
+
+        // Check file pattern filter
+        if let Some(pattern) = &filter_config.file_pattern {
+            if !path.file_name()
+                .map(|name| name.to_string_lossy().contains(pattern))
+                .unwrap_or(false) {
+                continue;
+            }
+        }
+
+        // Get file metadata
+        let metadata = match fs::metadata(&path) {
+            Ok(metadata) => metadata,
             Err(e) => {
-                response.errors.push(format!("Failed to read directory entry: {}", e));
+                response.errors.push(format!("Failed to get metadata for {}: {}", file_path_str, e));
                 continue;
             }
         };
 
-        let path = entry.path();
-        if path.is_file() {
-            let file_path_str = path.to_string_lossy().to_string();
+        let modified_time = match metadata.modified() {
+            Ok(time) => time,
+            Err(e) => {
+                response.errors.push(format!("Failed to get modified time for {}: {}", file_path_str, e));
+                continue;
+            }
+        };
 
-            // Check file pattern filter
-            if let Some(pattern) = &filter_config.file_pattern {
-                if !path.file_name()
-                    .map(|name| name.to_string_lossy().contains(pattern))
-                    .unwrap_or(false) {
-                    continue;
+        let modified_datetime: DateTime<Utc> = modified_time.into();
+
+        // Check if file matches the filter criteria
+        let should_delete = match task_type {
+            TaskType::DeleteOlder => {
+                if let Some(days_old) = filter_config.days_old {
+                    let cutoff_date = Utc::now() - chrono::Duration::days(days_old as i64);
+                    modified_datetime < cutoff_date
+                } else if let Some(date_from) = filter_config.date_from {
+                    modified_datetime < date_from
+                } else {
+                    false
                 }
             }
-
-            // Get file metadata
-            let metadata = match fs::metadata(&path) {
-                Ok(metadata) => metadata,
-                Err(e) => {
-                    response.errors.push(format!("Failed to get metadata for {}: {}", file_path_str, e));
-                    continue;
+            TaskType::DeleteNewer => {
+                if let Some(days_old) = filter_config.days_old {
+                    let cutoff_date = Utc::now() - chrono::Duration::days(days_old as i64);
+                    modified_datetime > cutoff_date
+                } else if let Some(date_to) = filter_config.date_to {
+                    modified_datetime > date_to
+                } else {
+                    false
                 }
-            };
+            }
+            TaskType::DeleteBetween => {
+                let after_start = filter_config.date_from
+                    .map(|start| modified_datetime >= start)
+                    .unwrap_or(true);
+                let before_end = filter_config.date_to
+                    .map(|end| modified_datetime <= end)
+                    .unwrap_or(true);
+                after_start && before_end
+            }
+        };
 
-            let modified_time = match metadata.modified() {
-                Ok(time) => time,
-                Err(e) => {
-                    response.errors.push(format!("Failed to get modified time for {}: {}", file_path_str, e));
-                    continue;
-                }
-            };
+        if should_delete {
+            response.files_found.push(file_path_str.clone());
+            response.total_files += 1;
 
-            let modified_datetime: DateTime<Utc> = modified_time.into();
-
-            // Check if file matches the filter criteria
-            let should_delete = match task_type {
-                TaskType::DeleteOlder => {
-                    if let Some(days_old) = filter_config.days_old {
-                        let cutoff_date = Utc::now() - chrono::Duration::days(days_old as i64);
-                        modified_datetime < cutoff_date
-                    } else if let Some(date_from) = filter_config.date_from {
-                        modified_datetime < date_from
-                    } else {
-                        false
+            if !dry_run {
+                match fs::remove_file(&path) {
+                    Ok(_) => {
+                        response.files_deleted.push(file_path_str);
+                        response.total_deleted += 1;
                     }
-                }
-                TaskType::DeleteNewer => {
-                    if let Some(days_old) = filter_config.days_old {
-                        let cutoff_date = Utc::now() - chrono::Duration::days(days_old as i64);
-                        modified_datetime > cutoff_date
-                    } else if let Some(date_to) = filter_config.date_to {
-                        modified_datetime > date_to
-                    } else {
-                        false
-                    }
-                }
-                TaskType::DeleteBetween => {
-                    let after_start = filter_config.date_from
-                        .map(|start| modified_datetime >= start)
-                        .unwrap_or(true);
-                    let before_end = filter_config.date_to
-                        .map(|end| modified_datetime <= end)
-                        .unwrap_or(true);
-                    after_start && before_end
-                }
-            };
-
-            if should_delete {
-                response.files_found.push(file_path_str.clone());
-                response.total_files += 1;
-
-                if !dry_run {
-                    match fs::remove_file(&path) {
-                        Ok(_) => {
-                            response.files_deleted.push(file_path_str);
-                            response.total_deleted += 1;
-                        }
-                        Err(e) => {
-                            response.errors.push(format!("Failed to delete {}: {}", file_path_str, e));
-                        }
+                    Err(e) => {
+                        response.errors.push(format!("Failed to delete {}: {}", file_path_str, e));
                     }
                 }
             }
