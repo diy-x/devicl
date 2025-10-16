@@ -99,5 +99,20 @@
   "tip_test_small_first": "Recommend testing on small scope first, then use on larger scope after confirmation",
 
   "security_notice": "Security Notice",
-  "change_default_password": "Please change the default password after first login"
+  "change_default_password": "Please change the default password after first login",
+
+  "by_days": "By Days",
+  "by_date": "By Date",
+  "before_date": "Before this time",
+  "after_date": "After this time",
+  "delete_days_hint": "Will delete files modified earlier than the specified number of days",
+
+  "enter_valid_days": "Please enter a valid number of days (at least 1 day)",
+  "select_time_range": "Please select start and end time",
+  "select_time": "Please select time",
+  "preview_result": "Preview completed: found {count} files",
+  "delete_result_msg": "Delete completed: deleted {count} files",
+  "task_delete_type_older": "Delete older than",
+  "task_delete_type_newer": "Delete newer than",
+  "task_delete_type_between": "Delete within range"
 }

@@ -168,12 +168,12 @@ function updateDirectoriesTable(directories) {
             <td>${escapeHtml(dir.description || '')}</td>
             <td>
                 <span class="status-${dir.enabled ? 'enabled' : 'disabled'}">
-                    ${dir.enabled ? '✅ 启用' : '❌ 禁用'}
+                    ${dir.enabled ? '✅ ' + getMessage('enabled') : '❌ ' + getMessage('disabled')}
                 </span>
             </td>
             <td>${formatDateTime(dir.created_at)}</td>
             <td>
-                <button onclick="deleteDirectory('${dir.id}')" class="secondary outline">删除</button>
+                <button onclick="deleteDirectory('${dir.id}')" class="secondary outline">${getMessage('delete')}</button>
             </td>
         </tr>
     `).join('');
@@ -238,9 +238,9 @@ function updateDateFields() {
 
         // 更新标签文本
         if (taskType === 'delete_older') {
-            singleDateLabel.textContent = getMessage('before_date') || '早于此时间';
+            singleDateLabel.textContent = getMessage('before_date');
         } else if (taskType === 'delete_newer') {
-            singleDateLabel.textContent = getMessage('after_date') || '晚于此时间';
+            singleDateLabel.textContent = getMessage('after_date');
         }
     }
 }
@@ -266,7 +266,7 @@ async function deleteFiles(dryRun) {
         // 按天数模式 - 固定为删除早于N天的文件
         const daysOld = document.getElementById('daysOld').value;
         if (!daysOld || parseInt(daysOld) < 1) {
-            showNotification('请输入有效的天数（至少为1天）', 'warning');
+            showNotification(getMessage('enter_valid_days'), 'warning');
             return;
         }
 
@@ -286,7 +286,7 @@ async function deleteFiles(dryRun) {
             const dateTo = document.getElementById('dateTo').value;
 
             if (!dateFrom || !dateTo) {
-                showNotification('请选择开始和结束时间', 'warning');
+                showNotification(getMessage('select_time_range'), 'warning');
                 return;
             }
 
@@ -300,7 +300,7 @@ async function deleteFiles(dryRun) {
             const singleDate = document.getElementById('singleDate').value;
 
             if (!singleDate) {
-                showNotification('请选择时间', 'warning');
+                showNotification(getMessage('select_time'), 'warning');
                 return;
             }
 
@@ -330,8 +330,8 @@ async function deleteFiles(dryRun) {
         resultContent.textContent = JSON.stringify(result, null, 2);
 
         const message = dryRun
-            ? `预览完成：找到 ${result.total_files} 个文件`
-            : `删除完成：共删除 ${result.total_deleted} 个文件`;
+            ? getMessage('preview_result').replace('{count}', result.total_files)
+            : getMessage('delete_result_msg').replace('{count}', result.total_deleted);
 
         showNotification(message, dryRun ? 'info' : 'success');
 
@@ -380,9 +380,9 @@ function updateTaskDateFields() {
 
         // 更新标签文本
         if (taskType === 'delete_older') {
-            singleDateLabel.textContent = getMessage('before_date') || '早于此时间';
+            singleDateLabel.textContent = getMessage('before_date');
         } else if (taskType === 'delete_newer') {
-            singleDateLabel.textContent = getMessage('after_date') || '晚于此时间';
+            singleDateLabel.textContent = getMessage('after_date');
         }
     }
 }
@@ -408,7 +408,7 @@ async function createTask() {
         // 按天数模式 - 固定为删除早于N天的文件
         const daysOld = document.getElementById('taskDaysOld').value;
         if (!daysOld || parseInt(daysOld) < 1) {
-            showNotification('请输入有效的天数（至少为1天）', 'warning');
+            showNotification(getMessage('enter_valid_days'), 'warning');
             return;
         }
 
@@ -428,7 +428,7 @@ async function createTask() {
             const dateTo = document.getElementById('taskDateTo').value;
 
             if (!dateFrom || !dateTo) {
-                showNotification('请选择开始和结束时间', 'warning');
+                showNotification(getMessage('select_time_range'), 'warning');
                 return;
             }
 
@@ -442,7 +442,7 @@ async function createTask() {
             const singleDate = document.getElementById('taskSingleDate').value;
 
             if (!singleDate) {
-                showNotification('请选择时间', 'warning');
+                showNotification(getMessage('select_time'), 'warning');
                 return;
             }
 
@@ -465,7 +465,7 @@ async function createTask() {
 
     try {
         await ApiClient.post('/api/tasks', data);
-        showNotification('定时任务创建成功！', 'success');
+        showNotification(getMessage('task_created_success'), 'success');
         form.reset();
         // 重置标签页到默认状态
         switchTaskTimeTab('byDays');
@@ -476,13 +476,13 @@ async function createTask() {
 }
 
 async function deleteTask(id) {
-    if (!confirm('确定要删除这个定时任务吗？')) {
+    if (!confirm(getMessage('delete_task_confirm'))) {
         return;
     }
 
     try {
         await ApiClient.delete(`/api/tasks/${id}`);
-        showNotification('定时任务删除成功！', 'success');
+        showNotification(getMessage('task_deleted_success'), 'success');
         await loadTasks();
     } catch (error) {
         // Error already handled in ApiClient
@@ -515,14 +515,14 @@ function updateTasksTable(tasks) {
                 <td>${getTaskTypeLabel(task.task_type)}</td>
                 <td>
                     <span class="status-${task.enabled ? 'enabled' : 'disabled'}">
-                        ${task.enabled ? '✅ 启用' : '❌ 禁用'}
+                        ${task.enabled ? '✅ ' + getMessage('enabled') : '❌ ' + getMessage('disabled')}
                     </span>
                 </td>
                 <td>
-                    ${task.last_run ? formatDateTime(task.last_run) : '<em>从未运行</em>'}
+                    ${task.last_run ? formatDateTime(task.last_run) : '<em>' + getMessage('never_run') + '</em>'}
                 </td>
                 <td>
-                    <button onclick="deleteTask('${task.id}')" class="secondary outline">删除</button>
+                    <button onclick="deleteTask('${task.id}')" class="secondary outline">${getMessage('delete')}</button>
                 </td>
             </tr>
         `;
@@ -549,9 +549,9 @@ function formatDateTime(dateString) {
 
 function getTaskTypeLabel(taskType) {
     const labels = {
-        'delete_older': '删除早于',
-        'delete_newer': '删除晚于',
-        'delete_between': '删除区间'
+        'delete_older': getMessage('task_delete_type_older'),
+        'delete_newer': getMessage('task_delete_type_newer'),
+        'delete_between': getMessage('task_delete_type_between')
     };
     return labels[taskType] || taskType;
 }
@@ -585,7 +585,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const cronExpression = document.getElementById('cronExpression').value;
             if (!validateCronExpression(cronExpression)) {
-                showNotification('Cron表达式格式不正确，应该包含5个部分（分 时 日 月 周）', 'warning');
+                showNotification(getMessage('cron_invalid'), 'warning');
                 return;
             }
 
@@ -598,7 +598,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (cronInput) {
         cronInput.addEventListener('blur', function() {
             if (this.value && !validateCronExpression(this.value)) {
-                showNotification('Cron表达式可能不正确，请检查格式', 'warning', 3000);
+                showNotification(getMessage('cron_format_warning'), 'warning', 3000);
             }
         });
     }
@@ -618,6 +618,6 @@ document.addEventListener('keydown', function(e) {
         e.preventDefault();
         loadDirectories();
         loadTasks();
-        showNotification('数据已刷新', 'info', 2000);
+        showNotification(getMessage('data_refreshed'), 'info', 2000);
     }
 });

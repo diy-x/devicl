@@ -115,6 +115,21 @@ pub struct Messages {
     // Security
     pub security_notice: String,
     pub change_default_password: String,
+
+    // Additional UI translations
+    pub by_days: String,
+    pub by_date: String,
+    pub before_date: String,
+    pub after_date: String,
+    pub delete_days_hint: String,
+    pub enter_valid_days: String,
+    pub select_time_range: String,
+    pub select_time: String,
+    pub preview_result: String,
+    pub delete_result_msg: String,
+    pub task_delete_type_older: String,
+    pub task_delete_type_newer: String,
+    pub task_delete_type_between: String,
 }
 
 #[derive(RustEmbed)]
@@ -276,6 +291,21 @@ fn create_fallback_messages() -> Messages {
         // Security
         security_notice: "Security Notice".to_string(),
         change_default_password: "Please change the default password after first login".to_string(),
+
+        // Additional UI translations
+        by_days: "By Days".to_string(),
+        by_date: "By Date".to_string(),
+        before_date: "Before this time".to_string(),
+        after_date: "After this time".to_string(),
+        delete_days_hint: "Will delete files modified earlier than the specified number of days".to_string(),
+        enter_valid_days: "Please enter a valid number of days (at least 1 day)".to_string(),
+        select_time_range: "Please select start and end time".to_string(),
+        select_time: "Please select time".to_string(),
+        preview_result: "Preview completed: found {count} files".to_string(),
+        delete_result_msg: "Delete completed: deleted {count} files".to_string(),
+        task_delete_type_older: "Delete older than".to_string(),
+        task_delete_type_newer: "Delete newer than".to_string(),
+        task_delete_type_between: "Delete within range".to_string(),
     }
 }
 

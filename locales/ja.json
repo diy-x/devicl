@@ -99,5 +99,20 @@
   "tip_test_small_first": "最初は小規模でテストし、確認後に大規模で使用することをお勧めします",
 
   "security_notice": "セキュリティ通知",
-  "change_default_password": "初回ログイン後にデフォルトパスワードを変更してください"
+  "change_default_password": "初回ログイン後にデフォルトパスワードを変更してください",
+
+  "by_days": "日数で指定",
+  "by_date": "日時で指定",
+  "before_date": "この時刻より前",
+  "after_date": "この時刻より後",
+  "delete_days_hint": "指定した日数より古いファイルを削除します",
+
+  "enter_valid_days": "有効な日数を入力してください（最低1日）",
+  "select_time_range": "開始時刻と終了時刻を選択してください",
+  "select_time": "時刻を選択してください",
+  "preview_result": "プレビュー完了：{count}個のファイルが見つかりました",
+  "delete_result_msg": "削除完了：{count}個のファイルを削除しました",
+  "task_delete_type_older": "より古いものを削除",
+  "task_delete_type_newer": "より新しいものを削除",
+  "task_delete_type_between": "範囲内を削除"
 }

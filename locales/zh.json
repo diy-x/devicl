@@ -99,5 +99,20 @@
   "tip_test_small_first": "建议先在小范围测试，确认无误后再大范围使用",
 
   "security_notice": "安全提示",
-  "change_default_password": "请在首次登录后修改默认密码"
+  "change_default_password": "请在首次登录后修改默认密码",
+
+  "by_days": "按天数",
+  "by_date": "按时间",
+  "before_date": "早于此时间",
+  "after_date": "晚于此时间",
+  "delete_days_hint": "将删除修改时间早于指定天数的文件",
+
+  "enter_valid_days": "请输入有效的天数（至少为1天）",
+  "select_time_range": "请选择开始和结束时间",
+  "select_time": "请选择时间",
+  "preview_result": "预览完成：找到 {count} 个文件",
+  "delete_result_msg": "删除完成：共删除 {count} 个文件",
+  "task_delete_type_older": "删除早于",
+  "task_delete_type_newer": "删除晚于",
+  "task_delete_type_between": "删除区间"
 }
